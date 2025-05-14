@@ -13,6 +13,18 @@ namespace Resources.Tests
         [Tooltip("Resource categories to test")]
         public ResourceCategory[] resourceCategories;
 
+        [Tooltip("Whether to create resource containers")]
+        public bool createContainers = false;
+
+        [Tooltip("Initial values for resource containers")]
+        public float[] containerInitialValues;
+
+        [Tooltip("Minimum value resources for containers")]
+        public ResourceDefinition[] minValueResources;
+
+        [Tooltip("Maximum value resources for containers")]
+        public ResourceDefinition[] maxValueResources;
+
         [Tooltip("Whether to create test entities at runtime")]
         public bool createEntitiesAtRuntime = true;
 
@@ -38,6 +50,11 @@ namespace Resources.Tests
 
             CreateResourceEntities();
             CreateCategoryEntities();
+
+            if (createContainers)
+            {
+                CreateResourceContainers();
+            }
         }
 
         private void CreateResourceEntities()
@@ -96,6 +113,61 @@ namespace Resources.Tests
                 );
 
                 entityManager.AddComponentData(entity, categoryComponent);
+            }
+        }
+
+        private void CreateResourceContainers()
+        {
+            if (logDebugInfo)
+            {
+                Debug.Log("Creating resource containers...");
+            }
+
+            for (int i = 0; i < resourceDefinitions.Length; i++)
+            {
+                var resourceDef = resourceDefinitions[i];
+                if (resourceDef == null) continue;
+
+                // Get min/max value resource IDs if available
+                int minValueResourceID = 0;
+                int maxValueResourceID = 0;
+
+                if (minValueResources != null && i < minValueResources.Length && minValueResources[i] != null)
+                {
+                    minValueResourceID = minValueResources[i].UniqueID;
+                }
+
+                if (maxValueResources != null && i < maxValueResources.Length && maxValueResources[i] != null)
+                {
+                    maxValueResourceID = maxValueResources[i].UniqueID;
+                }
+
+                // Create the container entity
+                Entity containerEntity = entityManager.CreateEntity();
+                float initialValue = (containerInitialValues != null && i < containerInitialValues.Length)
+                    ? containerInitialValues[i]
+                    : 0f;
+
+                entityManager.AddComponentData(containerEntity, ResourceContainerComponent.Create(
+                    resourceDef.UniqueID,
+                    initialValue,
+                    minValueResourceID,
+                    maxValueResourceID
+                ));
+
+                if (logDebugInfo)
+                {
+                    string minResourceName = minValueResourceID > 0 && minValueResources != null && i < minValueResources.Length
+                        ? minValueResources[i].ResourceName
+                        : "None";
+
+                    string maxResourceName = maxValueResourceID > 0 && maxValueResources != null && i < maxValueResources.Length
+                        ? maxValueResources[i].ResourceName
+                        : "None";
+
+                    Debug.Log($"Created container for {resourceDef.ResourceName} with initial value: {initialValue}, " +
+                              $"Min: {minResourceName} (ID: {minValueResourceID}), Max: {maxResourceName} (ID: {maxValueResourceID})");
+                }
             }
         }
     }
